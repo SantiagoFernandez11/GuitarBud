@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-navy-900 text-gray-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-red-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-3 px-6 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-100 placeholder-gray-400 transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl shadow-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-200;
+  }
+
+  /* Heavy Metal Guitar Bud Logo */
+  .metal-logo {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-weight: 900;
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, #dc2626, #ef4444, #fca5a5, #ef4444, #dc2626);
+    background-size: 300% 300%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 
+      2px 2px 0px #7f1d1d,
+      4px 4px 0px #451a1a,
+      6px 6px 0px #1f2937,
+      8px 8px 15px rgba(0,0,0,0.6);
+    transform: perspective(500px) rotateX(15deg);
+    letter-spacing: 2px;
+    animation: metalShine 3s ease-in-out infinite;
+  }
+
+  @keyframes metalShine {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Large Hero Logo */
+  .hero-metal-logo {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-weight: 900;
+    font-size: 4rem;
+    background: linear-gradient(45deg, #dc2626, #ef4444, #fca5a5, #ef4444, #dc2626);
+    background-size: 400% 400%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 
+      3px 3px 0px #7f1d1d,
+      6px 6px 0px #451a1a,
+      9px 9px 0px #1f2937,
+      12px 12px 20px rgba(0,0,0,0.8);
+    transform: perspective(800px) rotateX(10deg);
+    letter-spacing: 3px;
+    animation: heroMetalShine 4s ease-in-out infinite;
+  }
+
+  @keyframes heroMetalShine {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Status badges with metal styling */
+  .status-learned {
+    @apply bg-gradient-to-r from-green-600 to-green-700 text-green-100 border border-green-500;
+  }
+  
+  .status-practicing {
+    @apply bg-gradient-to-r from-yellow-600 to-yellow-700 text-yellow-100 border border-yellow-500;
+  }
+  
+  .status-want-to-learn {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 text-blue-100 border border-blue-500;
+  }
+
+  @media (max-width: 768px) {
+    .hero-metal-logo {
+      font-size: 2.5rem;
+      letter-spacing: 1px;
+    }
+    .metal-logo {
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+  }
+}
