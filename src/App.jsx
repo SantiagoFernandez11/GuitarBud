@@ -8,6 +8,7 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Songs from './pages/Songs'
 import SongForm from './pages/SongForm'
+import SongDetails from './pages/SongDetails'
 
 function App() {
   return (
@@ -41,6 +42,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SongForm />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Add this route for song details */}
+              <Route
+                path="/songs/:id"
+                element={
+                  <ProtectedRoute>
+                    <SongDetails />
                   </ProtectedRoute>
                 }
               />

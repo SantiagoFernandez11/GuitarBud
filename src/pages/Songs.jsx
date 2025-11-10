@@ -164,7 +164,9 @@ export default function Songs() {
                 <div className="flex items-center space-x-6">
                   {getStatusIcon(song.status)}
                   <div>
-                    <h3 className="text-xl font-bold text-gray-100">{song.title}</h3>
+                    <Link to={`/songs/${song.id}`} className="hover:text-blue-400 transition-colors">
+                        <h3 className="text-xl font-bold text-gray-100">{song.title}</h3>
+                    </Link>
                     <p className="text-lg text-gray-400 font-medium">{song.artist}</p>
                     {song.difficulty && (
                       <p className="text-sm text-yellow-400 font-bold mt-1">
