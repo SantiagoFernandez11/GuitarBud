@@ -200,12 +200,6 @@ export default function Songs() {
                   </div>
                 </div>
               </div>
-              
-              {song.notes && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <p className="text-gray-300 font-medium bg-gray-700 p-3 rounded-lg">{song.notes}</p>
-                </div>
-              )}
             </div>
           ))}
         </div>
