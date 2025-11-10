@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, Music } from 'lucide-react'
+import GuitarTabEditor from '../components/GuitarTabEditor'
 
 export default function SongForm() {
   const { id } = useParams()
@@ -18,10 +19,12 @@ export default function SongForm() {
     notes: '',
     chords: '',
     capo: '',
-    tuning: 'Standard'
+    tuning: 'Standard',
+    tab_data: null
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showTabEditor, setShowTabEditor] = useState(false)
 
   useEffect(() => {
     if (isEditing) {
@@ -49,8 +52,14 @@ export default function SongForm() {
           notes: data.notes || '',
           chords: data.chords || '',
           capo: data.capo || '',
-          tuning: data.tuning || 'Standard'
+          tuning: data.tuning || 'Standard',
+          tab_data: data.tab_data ? JSON.parse(data.tab_data) : null
         })
+        
+        // Open tab editor if there's existing tab data
+        if (data.tab_data) {
+          setShowTabEditor(true)
+        }
       }
     } catch (error) {
       console.error('Error fetching song:', error)
@@ -69,6 +78,7 @@ export default function SongForm() {
         user_id: user.id,
         difficulty: formData.difficulty ? parseInt(formData.difficulty) : null,
         capo: formData.capo ? parseInt(formData.capo) : null,
+        tab_data: formData.tab_data ? JSON.stringify(formData.tab_data) : null,
         updated_at: new Date().toISOString()
       }
 
@@ -106,8 +116,15 @@ export default function SongForm() {
     }))
   }
 
+  const handleTabSave = (tabData) => {
+    setFormData(prev => ({
+      ...prev,
+      tab_data: tabData
+    }))
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-navy-900 min-h-screen">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-navy-900 min-h-screen">
       <div className="mb-8">
         <button
           onClick={() => navigate('/songs')}
@@ -265,6 +282,51 @@ export default function SongForm() {
               placeholder="Add notes about techniques, solos, riffs, or practice tips..."
             />
           </div>
+        </div>
+
+        {/* Interactive Tab Editor Section */}
+        <div className="card">
+          <button
+            type="button"
+            onClick={() => setShowTabEditor(!showTabEditor)}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <div className="flex items-center space-x-3">
+              <Music className="h-6 w-6 text-blue-400" />
+              <h3 className="text-xl font-bold text-gray-100">Interactive Tab Editor</h3>
+              {formData.tab_data && (
+                <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+                  Has Tabs
+                </span>
+              )}
+            </div>
+            {showTabEditor ? (
+              <ChevronUp className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
+          
+          {showTabEditor && (
+            <div className="border-t border-gray-700 pt-6">
+              <p className="text-gray-400 mb-4">
+                Create interactive guitar tabs for your song. Click on the fretboard to add notes, 
+                right-click to remove them.
+              </p>
+              <GuitarTabEditor 
+                songId={id}
+                initialTabData={formData.tab_data}
+                onSave={handleTabSave}
+                embedded={true}
+              />
+            </div>
+          )}
+          
+          {!showTabEditor && (
+            <p className="text-gray-400 text-sm">
+              Click to open the interactive tab editor and create guitar tablature for your song.
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end space-x-4">
