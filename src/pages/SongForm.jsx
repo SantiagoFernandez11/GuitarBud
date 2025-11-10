@@ -310,8 +310,8 @@ export default function SongForm() {
           {showTabEditor && (
             <div className="border-t border-gray-700 pt-6">
               <p className="text-gray-400 mb-4">
-                Create interactive guitar tabs for your song. Click on the fretboard to add notes, 
-                right-click to remove them.
+                Create guitar tabs with techniques like slides, bends, and hammer-ons. 
+                Select playing techniques from the dropdown and click frets to build your tab.
               </p>
               <GuitarTabEditor 
                 songId={id}
@@ -324,7 +324,7 @@ export default function SongForm() {
           
           {!showTabEditor && (
             <p className="text-gray-400 text-sm">
-              Click to open the interactive tab editor and create guitar tablature for your song.
+              Click to open the guitar tab editor with support for slides, bends, hammer-ons, and other techniques.
             </p>
           )}
         </div>
