@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, Music } from 'lucide-react'
+import { ArrowLeft, Save, AlertCircle, Music } from 'lucide-react'
 import GuitarTabEditor from '../components/GuitarTabEditor'
 
 export default function SongForm() {
@@ -24,7 +24,7 @@ export default function SongForm() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showTabEditor, setShowTabEditor] = useState(false)
+  const [editingTabs, setEditingTabs] = useState(false)
 
   useEffect(() => {
     if (isEditing) {
@@ -55,11 +55,6 @@ export default function SongForm() {
           tuning: data.tuning || 'Standard',
           tab_data: data.tab_data ? JSON.parse(data.tab_data) : null
         })
-        
-        // Open tab editor if there's existing tab data
-        if (data.tab_data) {
-          setShowTabEditor(true)
-        }
       }
     } catch (error) {
       console.error('Error fetching song:', error)
@@ -121,6 +116,109 @@ export default function SongForm() {
       ...prev,
       tab_data: tabData
     }))
+  }
+
+  // Function to render tabs in read-only format
+  const renderTabDisplay = () => {
+    const strings = ['e', 'B', 'G', 'D', 'A', 'E'] // Define strings for fallback
+    
+    if (!formData.tab_data?.tab?.lines) {
+      return (
+        <div className="text-center py-8 text-gray-400">
+          <p>No tabs created yet.</p>
+          <button
+            type="button"
+            onClick={() => setEditingTabs(true)}
+            className="mt-2 text-blue-400 hover:text-blue-300 font-medium"
+          >
+            Create your first tab →
+          </button>
+        </div>
+      )
+    }
+
+    const { tab } = formData.tab_data
+    
+    // Find the actual length of content
+    const maxLength = Math.max(
+      ...tab.lines.map(line => line.notes ? line.notes.length : 0),
+      tab.chords ? tab.chords.length : 0,
+      10 // Minimum display length
+    )
+    
+    // Calculate position widths for alignment
+    const positionWidths = []
+    for (let pos = 0; pos < maxLength; pos++) {
+      let maxWidth = 1
+      tab.lines.forEach(line => {
+        if (line.notes && line.notes[pos]) {
+          const note = line.notes[pos]
+          if (typeof note === 'string' && note !== '-') {
+            maxWidth = Math.max(maxWidth, note.length)
+          }
+        }
+      })
+      if (tab.chords && tab.chords[pos] && typeof tab.chords[pos] === 'string') {
+        maxWidth = Math.max(maxWidth, tab.chords[pos].length)
+      }
+      positionWidths[pos] = maxWidth
+    }
+
+    return (
+      <div className="bg-black rounded-lg p-4 border border-gray-700">
+        <div className="font-mono text-xs overflow-x-auto">
+          {/* Chord names */}
+          {tab.chords && tab.chords.some(chord => chord && chord.trim()) && (
+            <div className="text-blue-400 mb-1 whitespace-pre">
+              {' '.repeat(2)}
+              {Array.from({ length: maxLength }, (_, i) => {
+                const chord = tab.chords[i] || ''
+                const width = positionWidths[i] || 1
+                return (typeof chord === 'string' ? chord : '').padEnd(width)
+              }).join('')}
+            </div>
+          )}
+          
+          {/* Tab lines */}
+          {tab.lines.map((line, stringIndex) => (
+            <div key={stringIndex} className="whitespace-pre">
+              <span className="text-gray-300">{line.string || strings[stringIndex]}</span>
+              <span className="text-gray-400">|</span>
+              {Array.from({ length: maxLength }, (_, i) => {
+                const note = line.notes && line.notes[i] ? line.notes[i] : '-'
+                const width = positionWidths[i] || 1
+                const noteStr = typeof note === 'string' ? note : '-'
+                const paddedNote = noteStr.padEnd(width)
+                
+                // Color code based on technique
+                if (noteStr.includes('/') || noteStr.includes('\\')) {
+                  return <span key={i} className="text-blue-400">{paddedNote}</span>
+                }
+                if (noteStr.includes('h') || noteStr.includes('p')) {
+                  return <span key={i} className="text-yellow-400">{paddedNote}</span>
+                }
+                if (noteStr.includes('^') || noteStr.includes('~')) {
+                  return <span key={i} className="text-red-400">{paddedNote}</span>
+                }
+                if (noteStr.includes('<') || noteStr === 'x') {
+                  return <span key={i} className="text-purple-400">{paddedNote}</span>
+                }
+                return <span key={i} className="text-green-400">{paddedNote}</span>
+              })}
+              <span className="text-gray-400">|</span>
+            </div>
+          ))}
+        </div>
+        
+        <div className="text-xs text-gray-500 mt-3">
+          <span className="text-blue-400">Slides</span> • 
+          <span className="text-yellow-400 ml-2">Hammer-ons/Pull-offs</span> • 
+          <span className="text-red-400 ml-2">Bends/Vibrato</span> • 
+          <span className="text-purple-400 ml-2">Harmonics/Mutes</span> • 
+          <span className="text-green-400 ml-2">Normal Notes</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -253,21 +351,6 @@ export default function SongForm() {
             </div>
           </div>
 
-          <div className="mt-8">
-            <label htmlFor="chords" className="block text-sm font-bold text-gray-300 mb-2">
-              Chords & Progressions
-            </label>
-            <textarea
-              name="chords"
-              id="chords"
-              rows={3}
-              value={formData.chords}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="List the main chords used (e.g., Em, C, G, D - or power chords E5, A5, D5)"
-            />
-          </div>
-
           <div className="mt-6">
             <label htmlFor="notes" className="block text-sm font-bold text-gray-300 mb-2">
               Practice Notes & Techniques
@@ -284,31 +367,29 @@ export default function SongForm() {
           </div>
         </div>
 
-        {/* Interactive Tab Editor Section */}
+        {/* Guitar Tabs Section */}
         <div className="card">
-          <button
-            type="button"
-            onClick={() => setShowTabEditor(!showTabEditor)}
-            className="flex items-center justify-between w-full text-left mb-4"
-          >
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Music className="h-6 w-6 text-blue-400" />
-              <h3 className="text-xl font-bold text-gray-100">Interactive Tab Editor</h3>
+              <h3 className="text-xl font-bold text-gray-100">Guitar Tablature</h3>
               {formData.tab_data && (
                 <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
-                  Has Tabs
+                  Created
                 </span>
               )}
             </div>
-            {showTabEditor ? (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => setEditingTabs(!editingTabs)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {editingTabs ? 'Done Editing' : 'Edit Tabs'}
+            </button>
+          </div>
           
-          {showTabEditor && (
-            <div className="border-t border-gray-700 pt-6">
+          {editingTabs ? (
+            <div>
               <p className="text-gray-400 mb-4">
                 Create guitar tabs with techniques like slides, bends, and hammer-ons. 
                 Select playing techniques from the dropdown and click frets to build your tab.
@@ -320,12 +401,10 @@ export default function SongForm() {
                 embedded={true}
               />
             </div>
-          )}
-          
-          {!showTabEditor && (
-            <p className="text-gray-400 text-sm">
-              Click to open the guitar tab editor with support for slides, bends, hammer-ons, and other techniques.
-            </p>
+          ) : (
+            <div>
+              {renderTabDisplay()}
+            </div>
           )}
         </div>
 
