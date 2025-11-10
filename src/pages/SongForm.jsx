@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { ArrowLeft, Save, AlertCircle, Music } from 'lucide-react'
-import GuitarTabEditor from '../components/GuitarTabEditor'
+import GuitarTabEditor from '../components/Guitarabeditor'
 
 export default function SongForm() {
   const { id } = useParams()
