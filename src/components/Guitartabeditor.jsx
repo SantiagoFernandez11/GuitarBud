@@ -402,8 +402,10 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
             type="text"
             placeholder="G, Am, D7, etc."
             className="px-3 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100"
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
+                e.preventDefault
+                e.eventPreventDefault()
                 addChord(e.target.value)
                 e.target.value = ''
               }
