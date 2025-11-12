@@ -111,7 +111,7 @@ export default function Login() {
             <p className="text-sm text-gray-400">
               Don't have an account?{' '}
               <Link to="/signup" className="text-red-400 hover:text-red-300 font-bold transition-colors">
-                Join the Guitar Bud Family!
+                Join Guitar Bud!
               </Link>
             </p>
           </div>

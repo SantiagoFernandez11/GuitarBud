@@ -159,50 +159,56 @@ export default function Songs() {
       {filteredSongs.length > 0 ? (
         <div className="space-y-6">
           {filteredSongs.map((song) => (
-            <div key={song.id} className="card hover:shadow-2xl transition-all duration-200 hover:border-gray-500">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  {getStatusIcon(song.status)}
-                  <div>
-                    <Link to={`/songs/${song.id}`} className="hover:text-blue-400 transition-colors">
-                        <h3 className="text-xl font-bold text-gray-100">{song.title}</h3>
-                    </Link>
-                    <p className="text-lg text-gray-400 font-medium">{song.artist}</p>
-                    {song.difficulty && (
-                      <p className="text-sm text-yellow-400 font-bold mt-1">
-                        🔥 Difficulty: {song.difficulty}/10
-                      </p>
-                    )}
-                    {song.chords && (
-                      <p className="text-sm text-blue-400 mt-1">
-                        🎸 Chords: {song.chords}
-                      </p>
-                    )}
+            <Link key={song.id} to={`/songs/${song.id}`} className="block">
+              <div className="card hover:shadow-2xl transition-all duration-200 hover:border-gray-500 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-6">
+                    {getStatusIcon(song.status)}
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-100 hover:text-blue-400 transition-colors">
+                        {song.title}
+                      </h3>
+                      <p className="text-lg text-gray-400 font-medium">{song.artist}</p>
+                      {song.difficulty && (
+                        <p className="text-sm text-yellow-400 font-bold mt-1">
+                          🔥 Difficulty: {song.difficulty}/10
+                        </p>
+                      )}
+                      {song.chords && (
+                        <p className="text-sm text-blue-400 mt-1">
+                          🎸 Chords: {song.chords}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <span className={`px-4 py-2 text-sm font-bold rounded-full border ${getStatusColor(song.status)}`}>
-                    {getStatusText(song.status)}
-                  </span>
                   
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/songs/${song.id}/edit`}
-                      className="p-3 bg-gray-700 hover:bg-blue-600 rounded-lg transition-all duration-200 border border-gray-600 hover:border-blue-500"
-                    >
-                      <Edit className="h-5 w-5 text-gray-300 hover:text-white" />
-                    </Link>
-                    <button
-                      onClick={() => deleteSong(song.id)}
-                      className="p-3 bg-gray-700 hover:bg-red-600 rounded-lg transition-all duration-200 border border-gray-600 hover:border-red-500"
-                    >
-                      <Trash2 className="h-5 w-5 text-gray-300 hover:text-white" />
-                    </button>
+                  <div className="flex items-center space-x-4" onClick={(e) => e.stopPropagation()}>
+                    <span className={`px-4 py-2 text-sm font-bold rounded-full border ${getStatusColor(song.status)}`}>
+                      {getStatusText(song.status)}
+                    </span>
+                    
+                    <div className="flex space-x-2">
+                      <Link
+                        to={`/songs/${song.id}/edit`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-3 bg-gray-700 hover:bg-blue-600 rounded-lg transition-all duration-200 border border-gray-600 hover:border-blue-500"
+                      >
+                        <Edit className="h-5 w-5 text-gray-300 hover:text-white" />
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteSong(song.id)
+                        }}
+                        className="p-3 bg-gray-700 hover:bg-red-600 rounded-lg transition-all duration-200 border border-gray-600 hover:border-red-500"
+                      >
+                        <Trash2 className="h-5 w-5 text-gray-300 hover:text-white" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       ) : (

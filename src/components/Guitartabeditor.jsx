@@ -17,6 +17,7 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
   const [tabLength, setTabLength] = useState(20)
   const [selectedTechnique, setSelectedTechnique] = useState('normal')
   const [pendingTechnique, setPendingTechnique] = useState(null) // Stores technique waiting for target note
+  const [chordInputValue, setChordInputValue] = useState('')
 
   const strings = ['e', 'B', 'G', 'D', 'A', 'E']
   const frets = Array.from({ length: 16 }, (_, i) => i)
@@ -400,18 +401,37 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
           <label className="text-gray-300 text-sm">Add Chord:</label>
           <input
             type="text"
+            value={chordInputValue}
+            onChange={(e) => setChordInputValue(e.target.value)}
             placeholder="G, Am, D7, etc."
             className="px-3 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                e.preventDefault
-                e.eventPreventDefault()
-                addChord(e.target.value)
-                e.target.value = ''
+                e.preventDefault()
+                e.stopPropagation()
+                if (chordInputValue.trim()) {
+                  addChord(chordInputValue.trim())
+                  setChordInputValue('')
+                }
+                return false
               }
             }}
           />
-          <span className="text-gray-400 text-sm">(Press Enter to add)</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (chordInputValue.trim()) {
+                addChord(chordInputValue.trim())
+                setChordInputValue('')
+              }
+            }}
+            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+          >
+            Add
+          </button>
+          <span className="text-gray-400 text-sm">(Press Enter or click Add)</span>
         </div>
       </div>
 
