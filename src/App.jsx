@@ -14,13 +14,14 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-navy-900">
+        <div className="min-h-screen bg-gray-50">
           <Header />
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+
               <Route
                 path="/dashboard"
                 element={
@@ -29,6 +30,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/songs"
                 element={
@@ -37,6 +39,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/songs/new"
                 element={
@@ -45,7 +48,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Add this route for song details */}
+
               <Route
                 path="/songs/:id"
                 element={
@@ -54,6 +57,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/songs/:id/edit"
                 element={
@@ -62,6 +66,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

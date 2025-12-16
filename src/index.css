@@ -4,98 +4,75 @@
 
 @layer base {
   body {
-    @apply bg-navy-900 text-gray-100;
+    @apply bg-gray-50 text-gray-900 antialiased;
   }
 }
 
 @layer components {
+  /* Primary Button */
   .btn-primary {
-    @apply bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-red-500;
+    @apply bg-gray-900 text-white font-medium py-2.5 px-5 rounded-md
+           hover:bg-gray-800 transition-colors duration-150;
   }
-  
+
+  /* Secondary Button */
   .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-3 px-6 rounded-lg transition-all duration-200 border border-gray-600 hover:border-gray-500;
+    @apply bg-white text-gray-900 font-medium py-2.5 px-5 rounded-md
+           border border-gray-300 hover:bg-gray-100 transition-colors duration-150;
   }
-  
+
+  /* Input Field */
   .input-field {
-    @apply w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-100 placeholder-gray-400 transition-all duration-200;
+    @apply w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md
+           text-gray-900 placeholder-gray-400
+           focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
+           transition-colors duration-150;
   }
-  
+
+  /* Card */
   .card {
-    @apply bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl shadow-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-200;
+    @apply bg-white rounded-lg p-6 border border-gray-200;
   }
 
-  /* Heavy Metal Guitar Bud Logo */
-  .metal-logo {
-    font-family: 'Arial Black', Arial, sans-serif;
-    font-weight: 900;
-    font-size: 2.5rem;
-    background: linear-gradient(45deg, #dc2626, #ef4444, #fca5a5, #ef4444, #dc2626);
-    background-size: 300% 300%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 
-      2px 2px 0px #7f1d1d,
-      4px 4px 0px #451a1a,
-      6px 6px 0px #1f2937,
-      8px 8px 15px rgba(0,0,0,0.6);
-    transform: perspective(500px) rotateX(15deg);
-    letter-spacing: 2px;
-    animation: metalShine 3s ease-in-out infinite;
-  }
-
-  @keyframes metalShine {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-
-  /* Large Hero Logo */
+  /* Logo – Clean & Minimal */
+  .metal-logo,
   .hero-metal-logo {
-    font-family: 'Arial Black', Arial, sans-serif;
-    font-weight: 900;
-    font-size: 4rem;
-    background: linear-gradient(45deg, #dc2626, #ef4444, #fca5a5, #ef4444, #dc2626);
-    background-size: 400% 400%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 
-      3px 3px 0px #7f1d1d,
-      6px 6px 0px #451a1a,
-      9px 9px 0px #1f2937,
-      12px 12px 20px rgba(0,0,0,0.8);
-    transform: perspective(800px) rotateX(10deg);
-    letter-spacing: 3px;
-    animation: heroMetalShine 4s ease-in-out infinite;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: theme('colors.gray.900');
+    text-shadow: none;
+    transform: none;
+    animation: none;
   }
 
-  @keyframes heroMetalShine {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+  .metal-logo {
+    font-size: 1.75rem;
   }
 
-  /* Status badges with metal styling */
+  .hero-metal-logo {
+    font-size: 3rem;
+  }
+
+  /* Status Badges */
   .status-learned {
-    @apply bg-gradient-to-r from-green-600 to-green-700 text-green-100 border border-green-500;
+    @apply bg-gray-100 text-gray-800 border border-gray-300;
   }
-  
+
   .status-practicing {
-    @apply bg-gradient-to-r from-yellow-600 to-yellow-700 text-yellow-100 border border-yellow-500;
+    @apply bg-gray-100 text-gray-800 border border-gray-300;
   }
-  
+
   .status-want-to-learn {
-    @apply bg-gradient-to-r from-blue-600 to-blue-700 text-blue-100 border border-blue-500;
+    @apply bg-gray-100 text-gray-800 border border-gray-300;
   }
 
   @media (max-width: 768px) {
     .hero-metal-logo {
-      font-size: 2.5rem;
-      letter-spacing: 1px;
+      font-size: 2.2rem;
     }
     .metal-logo {
-      font-size: 1.8rem;
-      letter-spacing: 1px;
+      font-size: 1.5rem;
     }
   }
 }

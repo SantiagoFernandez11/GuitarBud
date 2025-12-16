@@ -14,17 +14,14 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
     ]
   })
   const [currentPosition, setCurrentPosition] = useState(0)
-  const [tabLength, setTabLength] = useState(20)
   const [selectedTechnique, setSelectedTechnique] = useState('normal')
-  const [pendingTechnique, setPendingTechnique] = useState(null) // Stores technique waiting for target note
-  const [chordInputValue, setChordInputValue] = useState('')
+  const [pendingTechnique, setPendingTechnique] = useState(null)
+  const [tabLength, setTabLength] = useState(32)
+  const [isDirty, setIsDirty] = useState(false)
 
-  const strings = ['e', 'B', 'G', 'D', 'A', 'E']
-  const frets = Array.from({ length: 16 }, (_, i) => i)
-  
   const techniques = [
-    { value: 'normal', symbol: '', label: 'Normal', desc: 'Regular note' },
-    { value: 'slide', symbol: '/', label: 'Slide Up', desc: 'Slide up (3/5)' },
+    { value: 'normal', symbol: '', label: 'Normal', desc: 'Standard note' },
+    { value: 'slideUp', symbol: '/', label: 'Slide Up', desc: 'Slide up (3/5)' },
     { value: 'slideDown', symbol: '\\', label: 'Slide Down', desc: 'Slide down (5\\3)' },
     { value: 'hammerOn', symbol: 'h', label: 'Hammer-On', desc: 'Hammer-on (3h5)' },
     { value: 'pullOff', symbol: 'p', label: 'Pull-Off', desc: 'Pull-off (5p3)' },
@@ -40,29 +37,38 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
     if (initialTabData) {
       setTab(initialTabData.tab || tab)
       setCurrentPosition(initialTabData.currentPosition || 0)
-      setTabLength(initialTabData.tabLength || 20)
       setSelectedTechnique(initialTabData.selectedTechnique || 'normal')
-      setPendingTechnique(initialTabData.pendingTechnique || null)
+      setTabLength(initialTabData.tabLength || 32)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTabData])
 
-  // Auto-save when embedded
+  // Mark dirty when tab changes
   useEffect(() => {
-    if (embedded) {
+    setIsDirty(true)
+  }, [tab])
+
+  // Auto-save for embedded mode
+  useEffect(() => {
+    if (embedded && onSave && isDirty) {
       const timeoutId = setTimeout(() => {
-        if (onSave) {
-          onSave({ tab, currentPosition, tabLength, selectedTechnique, pendingTechnique })
-        }
+        onSave({
+          tab,
+          currentPosition,
+          selectedTechnique,
+          tabLength
+        })
+        setIsDirty(false)
       }, 1000)
       return () => clearTimeout(timeoutId)
     }
-  }, [tab, currentPosition, tabLength, selectedTechnique, pendingTechnique, embedded, onSave])
+  }, [tab, currentPosition, tabLength, selectedTechnique, embedded, onSave, isDirty])
 
   const addNote = (stringIndex, fret) => {
     setTab(prev => {
       const newTab = { ...prev }
       const line = newTab.lines[stringIndex]
-      
+
       // Extend arrays if needed
       while (line.notes.length <= currentPosition) {
         line.notes.push('-')
@@ -70,57 +76,69 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
       while (newTab.chords.length <= currentPosition) {
         newTab.chords.push('')
       }
-      
+
       // Check if we're completing a pending technique
-      if (pendingTechnique && pendingTechnique.stringIndex === stringIndex) {
-        // Complete the technique by updating the previous position
-        const prevPos = pendingTechnique.position
-        const prevNote = line.notes[prevPos]
-        const fromFret = pendingTechnique.fromFret
-        const symbol = pendingTechnique.symbol
-        
-        // Update the previous position with the complete technique
-        line.notes[prevPos] = `${fromFret}${symbol}${fret}`
-        
-        // Add the target note at current position (normal note)
-        line.notes[currentPosition] = fret === 0 ? '0' : fret.toString()
-        
-        // Clear pending technique
+      if (pendingTechnique) {
+        const { stringIndex: fromString, position: fromPos, fret: fromFret, technique } = pendingTechnique
+
+        // Only allow technique completion on same string
+        if (fromString !== stringIndex) {
+          setPendingTechnique(null)
+          return prev
+        }
+
+        // Ensure both positions exist
+        while (line.notes.length <= fromPos) {
+          line.notes.push('-')
+        }
+
+        // Create technique notation
+        const fromNote = fromFret === 0 ? '0' : fromFret.toString()
+        const toNote = fret === 0 ? '0' : fret.toString()
+        const symbol = technique.symbol
+
+        // Place notation at from position
+        line.notes[fromPos] = fromNote + symbol + toNote
+
         setPendingTechnique(null)
-        
+
         return newTab
       }
-      
+
       // Handle new technique
       const technique = techniques.find(t => t.value === selectedTechnique)
       let noteText = ''
-      
+
       if (selectedTechnique === 'mute') {
         noteText = 'x'
       } else if (selectedTechnique === 'harmonic') {
         noteText = `<${fret}>`
       } else if (selectedTechnique === 'normal') {
         noteText = fret === 0 ? '0' : fret.toString()
-      } else if (['slide', 'slideDown', 'hammerOn', 'pullOff'].includes(selectedTechnique)) {
-        // For techniques that need two notes, add symbol and wait for target
-        noteText = `${fret}${technique.symbol}`
-        
-        // Set pending technique to wait for next note
+      } else if (['slideUp', 'slideDown', 'hammerOn', 'pullOff'].includes(selectedTechnique)) {
+        // These techniques need a second note
         setPendingTechnique({
           stringIndex,
           position: currentPosition,
-          fromFret: fret,
-          symbol: technique.symbol
+          fret,
+          technique
         })
-        
-        line.notes[currentPosition] = noteText
-        return newTab
-      } else {
-        // Single note techniques (bend, vibrato, etc.)
-        noteText = `${fret}${technique.symbol}`
+        noteText = fret === 0 ? '0' : fret.toString()
+      } else if (selectedTechnique === 'bend') {
+        noteText = (fret === 0 ? '0' : fret.toString()) + '^'
+      } else if (selectedTechnique === 'release') {
+        noteText = (fret === 0 ? '0' : fret.toString()) + '^r'
+      } else if (selectedTechnique === 'vibrato') {
+        noteText = (fret === 0 ? '0' : fret.toString()) + '~'
       }
-      
+
       line.notes[currentPosition] = noteText
+
+      // Auto-advance position
+      if (currentPosition < tabLength - 1) {
+        setCurrentPosition(prevPos => prevPos + 1)
+      }
+
       return newTab
     })
   }
@@ -128,164 +146,155 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
   const removeNote = (stringIndex, position) => {
     setTab(prev => {
       const newTab = { ...prev }
-      if (newTab.lines[stringIndex].notes[position]) {
-        newTab.lines[stringIndex].notes[position] = '-'
+      const line = newTab.lines[stringIndex]
+      if (line.notes[position] !== undefined) {
+        line.notes[position] = '-'
       }
       return newTab
     })
   }
 
-  const addChord = (chordName) => {
-    if (!chordName.trim()) return
-    
+  const addChord = (position, chordName) => {
     setTab(prev => {
       const newTab = { ...prev }
-      while (newTab.chords.length <= currentPosition) {
+      while (newTab.chords.length <= position) {
         newTab.chords.push('')
       }
-      newTab.chords[currentPosition] = chordName.trim()
+      newTab.chords[position] = chordName
       return newTab
     })
-  }
-
-  const movePosition = (direction) => {
-    // Clear pending technique when manually moving position
-    setPendingTechnique(null)
-    
-    if (direction === 'left' && currentPosition > 0) {
-      setCurrentPosition(currentPosition - 1)
-    } else if (direction === 'right') {
-      setCurrentPosition(currentPosition + 1)
-      if (currentPosition + 1 >= tabLength) {
-        setTabLength(tabLength + 10)
-      }
-    }
-  }
-
-  const extendTab = () => {
-    setTabLength(tabLength + 10)
   }
 
   const clearPosition = () => {
-    setPendingTechnique(null)
-    
     setTab(prev => {
       const newTab = { ...prev }
       newTab.lines.forEach(line => {
-        if (line.notes[currentPosition]) {
+        if (line.notes[currentPosition] !== undefined) {
           line.notes[currentPosition] = '-'
         }
       })
-      if (newTab.chords[currentPosition]) {
+      if (newTab.chords[currentPosition] !== undefined) {
         newTab.chords[currentPosition] = ''
       }
       return newTab
     })
+    setPendingTechnique(null)
   }
 
   const clearAll = () => {
-    if (window.confirm('Clear entire tab?')) {
-      setPendingTechnique(null)
-      setTab({
-        chords: [],
-        lines: [
-          { string: 'e', notes: [] },
-          { string: 'B', notes: [] },
-          { string: 'G', notes: [] },
-          { string: 'D', notes: [] },
-          { string: 'A', notes: [] },
-          { string: 'E', notes: [] }
-        ]
-      })
-      setCurrentPosition(0)
-    }
+    setTab({
+      chords: [],
+      lines: [
+        { string: 'e', notes: [] },
+        { string: 'B', notes: [] },
+        { string: 'G', notes: [] },
+        { string: 'D', notes: [] },
+        { string: 'A', notes: [] },
+        { string: 'E', notes: [] }
+      ]
+    })
+    setCurrentPosition(0)
+    setPendingTechnique(null)
   }
 
-  const exportTab = () => {
-    const positionWidths = getPositionWidths()
-    const maxLength = Math.max(
-      tabLength,
-      ...tab.lines.map(line => line.notes.length),
-      tab.chords.length
-    )
-    
-    // Build chord line with proper spacing
-    const chordLine = Array.from({ length: maxLength }, (_, i) => {
-      const chord = tab.chords[i] || ''
-      const width = positionWidths[i] || 1
-      return chord.padEnd(width)
-    }).join('')
-    
-    // Build tab lines with proper spacing
-    const tabText = tab.lines.map(line => {
-      const notes = Array.from({ length: maxLength }, (_, i) => {
-        const note = line.notes[i] || '-'
-        const width = positionWidths[i] || 1
-        return note.padEnd(width)
-      })
-      return `${line.string}|${notes.join('')}|`
-    }).join('\n')
-
-    const fullTab = `${chordLine}\n${tabText}`
-
-    const element = document.createElement('a')
-    const file = new Blob([fullTab], { type: 'text/plain' })
-    element.href = URL.createObjectURL(file)
-    element.download = `song_${songId || 'untitled'}_tabs.txt`
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
+  const extendTab = () => {
+    setTabLength(prev => prev + 16)
   }
 
   const saveTab = () => {
     if (onSave) {
-      onSave({ tab, currentPosition, tabLength, selectedTechnique, pendingTechnique })
-    }
-  }
-
-  // Function to get the display width of a note/technique
-  const getNoteDisplayWidth = (note) => {
-    if (!note || note === '-') return 1
-    return Math.max(1, note.length)
-  }
-
-  // Function to get the maximum width needed for each position across all strings
-  const getPositionWidths = () => {
-    const widths = []
-    const maxLength = Math.max(
-      tabLength,
-      ...tab.lines.map(line => line.notes.length),
-      tab.chords.length
-    )
-    
-    for (let pos = 0; pos < maxLength; pos++) {
-      let maxWidth = 1
-      // Check all strings for this position
-      tab.lines.forEach(line => {
-        const note = line.notes[pos] || '-'
-        maxWidth = Math.max(maxWidth, getNoteDisplayWidth(note))
+      onSave({
+        tab,
+        currentPosition,
+        selectedTechnique,
+        tabLength
       })
-      // Also check chord name width
-      const chord = tab.chords[pos] || ''
-      maxWidth = Math.max(maxWidth, chord.length || 1)
-      
-      widths[pos] = maxWidth
+      setIsDirty(false)
     }
-    
+  }
+
+  const exportTab = () => {
+    // Generate tab text
+    let tabText = ''
+
+    // Add chords line
+    const chordLine = tab.chords.map(chord => (chord || '').padEnd(3, ' ')).join('')
+    tabText += `   ${chordLine}\n`
+
+    // Add each string line
+    tab.lines.forEach(line => {
+      const noteLine = []
+      for (let i = 0; i < tabLength; i++) {
+        const note = line.notes[i] || '-'
+        // Handle multi-character notes (like 10, 3h5, etc.)
+        if (note.length > 1) {
+          noteLine.push(note.padEnd(3, '-'))
+        } else {
+          noteLine.push(note.padEnd(3, '-'))
+        }
+      }
+      tabText += `${line.string}|${noteLine.join('')}|\n`
+    })
+
+    // Download as text file
+    const blob = new Blob([tabText], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tab-${songId || 'export'}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const movePosition = (direction) => {
+    setPendingTechnique(null)
+    setCurrentPosition(prev => {
+      const newPos = prev + direction
+      return Math.max(0, Math.min(tabLength - 1, newPos))
+    })
+  }
+
+  // Generate fret numbers (0-12)
+  const frets = Array.from({ length: 13 }, (_, i) => i)
+
+  // Calculate display widths for proper alignment
+  const getNoteWidth = (note) => {
+    return Math.max(1, note.toString().length)
+  }
+
+  const getMaxWidths = () => {
+    const widths = Array(tabLength).fill(1)
+
+    tab.lines.forEach(line => {
+      line.notes.forEach((note, pos) => {
+        if (note && note !== '-') {
+          widths[pos] = Math.max(widths[pos], getNoteWidth(note))
+        }
+      })
+    })
+
+    tab.chords.forEach((chord, pos) => {
+      if (chord) {
+        widths[pos] = Math.max(widths[pos], chord.length)
+      }
+    })
+
     return widths
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-700 p-6">
+    <div className="card">
       {/* Header */}
       {!embedded ? (
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-100">🎸 Guitar Tab Editor</h3>
+          <h3 className="text-2xl font-semibold text-gray-900">🎸 Guitar Tab Editor</h3>
           <div className="flex items-center space-x-4">
             <button
               type="button"
               onClick={clearPosition}
-              className="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 transition-colors"
               title="Clear current position"
             >
               <Minus className="h-4 w-4" />
@@ -293,7 +302,7 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
             <button
               type="button"
               onClick={clearAll}
-              className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 transition-colors"
               title="Clear all"
             >
               <Trash2 className="h-4 w-4" />
@@ -301,7 +310,7 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
             <button
               type="button"
               onClick={extendTab}
-              className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 transition-colors"
               title="Extend tab"
             >
               <Plus className="h-4 w-4" />
@@ -309,14 +318,16 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
             <button
               type="button"
               onClick={saveTab}
-              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 transition-colors"
+              title="Save"
             >
               <Save className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={exportTab}
-              className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+              className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 transition-colors"
+              title="Export"
             >
               <Download className="h-4 w-4" />
             </button>
@@ -324,21 +335,14 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
         </div>
       ) : (
         <div className="flex justify-between items-center mb-4">
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-gray-600">
             Position: {currentPosition + 1} • Click frets to add notes
           </div>
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={clearPosition}
-              className="px-2 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 rounded transition-colors"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
               onClick={exportTab}
-              className="px-2 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded transition-colors"
+              className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
             >
               Export
             </button>
@@ -350,222 +354,242 @@ const GuitarTabEditor = ({ songId, onSave, embedded = false, initialTabData = nu
       <div className="flex items-center justify-center space-x-4 mb-6">
         <button
           type="button"
-          onClick={() => movePosition('left')}
+          onClick={() => movePosition(-1)}
           disabled={currentPosition === 0}
-          className="p-2 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 rounded transition-colors"
+          className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+          title="Previous position"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        
+
         <div className="flex items-center space-x-2">
-          <span className="text-gray-300">Position:</span>
+          <span className="text-sm font-medium text-gray-700">Position</span>
           <input
             type="number"
             value={currentPosition + 1}
-            onChange={(e) => setCurrentPosition(Math.max(0, parseInt(e.target.value) - 1 || 0))}
-            className="w-16 px-2 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100 text-center"
+            onChange={(e) => {
+              const pos = parseInt(e.target.value) - 1
+              if (!isNaN(pos)) {
+                setCurrentPosition(Math.max(0, Math.min(tabLength - 1, pos)))
+                setPendingTechnique(null)
+              }
+            }}
+            className="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-gray-900 text-center focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             min="1"
+            max={tabLength}
           />
+          <span className="text-sm text-gray-500">/ {tabLength}</span>
         </div>
 
         <button
           type="button"
-          onClick={() => movePosition('right')}
-          className="p-2 bg-gray-600 hover:bg-gray-500 rounded transition-colors"
+          onClick={() => movePosition(1)}
+          disabled={currentPosition === tabLength - 1}
+          className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+          title="Next position"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
       {/* Technique Selector */}
-      <div className="mb-4">
-        <div className="flex items-center space-x-4">
-          <label className="text-sm font-bold text-gray-300">Playing Technique:</label>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <label className="text-sm font-medium text-gray-700">Technique</label>
           <select
             value={selectedTechnique}
-            onChange={(e) => setSelectedTechnique(e.target.value)}
-            className="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 min-w-40"
+            onChange={(e) => {
+              setSelectedTechnique(e.target.value)
+              setPendingTechnique(null)
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 min-w-40 focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
           >
             {techniques.map(technique => (
               <option key={technique.value} value={technique.value}>
-                {technique.label} - {technique.desc}
+                {technique.label} {technique.symbol ? `(${technique.symbol})` : ''}
               </option>
             ))}
           </select>
         </div>
+
+        {pendingTechnique && (
+          <div className="flex items-center space-x-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 px-3 py-2 rounded-md">
+            <Undo className="h-4 w-4" />
+            <span>Select destination note to complete technique</span>
+            <button
+              type="button"
+              onClick={() => setPendingTechnique(null)}
+              className="text-gray-900 hover:underline font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Chord Input */}
-      <div className="mb-4">
-        <div className="flex items-center space-x-2">
-          <label className="text-gray-300 text-sm">Add Chord:</label>
-          <input
-            type="text"
-            value={chordInputValue}
-            onChange={(e) => setChordInputValue(e.target.value)}
-            placeholder="G, Am, D7, etc."
-            className="px-3 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                e.stopPropagation()
-                if (chordInputValue.trim()) {
-                  addChord(chordInputValue.trim())
-                  setChordInputValue('')
-                }
-                return false
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (chordInputValue.trim()) {
-                addChord(chordInputValue.trim())
-                setChordInputValue('')
-              }
-            }}
-            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-          >
-            Add
-          </button>
-          <span className="text-gray-400 text-sm">(Press Enter or click Add)</span>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium text-gray-700">Chords</label>
+          <div className="text-xs text-gray-500">
+            Enter chord name for current position
+          </div>
         </div>
+        <input
+          type="text"
+          value={tab.chords[currentPosition] || ''}
+          onChange={(e) => addChord(currentPosition, e.target.value)}
+          placeholder="e.g., Am, C, G7"
+          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 transition-colors"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              movePosition(1)
+            }
+          }}
+        />
       </div>
 
       {/* Fretboard */}
-      <div className="bg-gray-800 rounded-lg p-4 mb-6">
-        <div className="text-sm text-gray-400 mb-3">
-          Click fret numbers to add notes at position {currentPosition + 1} with technique: 
-          <span className="text-blue-400 ml-1 font-medium">
-            {techniques.find(t => t.value === selectedTechnique)?.label}
-          </span>
-          {pendingTechnique && (
-            <span className="text-yellow-400 ml-2 font-medium">
-              → Waiting for target note on {strings[pendingTechnique.stringIndex]} string
-            </span>
-          )}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-900">Fretboard</h4>
+          <div className="text-xs text-gray-500">Click a fret to add note</div>
         </div>
-        
-        {strings.map((string, stringIndex) => (
-          <div key={stringIndex} className="flex items-center mb-2">
-            <div className={`w-8 text-right pr-2 font-bold ${
-              pendingTechnique && pendingTechnique.stringIndex === stringIndex 
-                ? 'text-yellow-400' 
-                : 'text-gray-300'
-            }`}>
-              {string}
-              {pendingTechnique && pendingTechnique.stringIndex === stringIndex && (
-                <span className="text-xs ml-1">→</span>
-              )}
-            </div>
-            <div className="flex space-x-1">
+
+        <div className="overflow-x-auto">
+          <div className="min-w-max">
+            {/* Fret numbers */}
+            <div className="flex items-center mb-2">
+              <div className="w-10"></div>
               {frets.map(fret => (
-                <button
-                  key={fret}
-                  type="button"
-                  onClick={() => addNote(stringIndex, fret)}
-                  className="w-8 h-8 bg-gray-700 hover:bg-blue-600 border border-gray-600 hover:border-blue-500 rounded text-gray-300 hover:text-white text-sm font-medium transition-colors"
-                >
+                <div key={fret} className="w-8 text-center text-xs text-gray-500 font-medium">
                   {fret}
-                </button>
+                </div>
               ))}
             </div>
+
+            {/* String rows */}
+            {tab.lines.map((line, stringIndex) => (
+              <div key={line.string} className="flex items-center mb-1">
+                <div className="w-10 text-sm font-semibold text-gray-800 text-center">
+                  {line.string}
+                </div>
+                {frets.map(fret => (
+                  <button
+                    key={fret}
+                    type="button"
+                    onClick={() => addNote(stringIndex, fret)}
+                    className="w-8 h-8 bg-white hover:bg-gray-900 border border-gray-300 hover:border-gray-900 rounded-md text-gray-700 hover:text-white text-sm font-medium transition-colors"
+                    title={`String ${line.string}, Fret ${fret}`}
+                  >
+                    {fret}
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Tab Display */}
-      <div className="bg-black rounded-lg p-4 border border-gray-700">
-        <div className="text-sm text-green-400 mb-2">Your Tab:</div>
-        <div className="font-mono text-xs overflow-x-auto">
+      <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-200">Tab Preview</h4>
+          <div className="text-xs text-gray-400">
+            Click notes to remove • Current position highlighted
+          </div>
+        </div>
+
+        <div className="font-mono text-sm overflow-x-auto">
           {(() => {
-            const positionWidths = getPositionWidths()
-            const maxLength = Math.max(
-              tabLength,
-              ...tab.lines.map(line => line.notes.length),
-              tab.chords.length
-            )
-            
+            const widths = getMaxWidths()
+
+            // Chords line
+            const chordLine = []
+            for (let i = 0; i < tabLength; i++) {
+              const chord = tab.chords[i] || ''
+              const width = widths[i]
+              const isCurrentPos = i === currentPosition
+              const displayChord = chord.padEnd(width + 2, ' ')
+              chordLine.push(
+                <span key={i} className={`${isCurrentPos ? 'bg-gray-700 text-white' : ''}`}>
+                  {displayChord}
+                </span>
+              )
+            }
+
             return (
               <>
-                {/* Chord names */}
-                <div className="text-blue-400 mb-1 whitespace-pre">
-                  {' '.repeat(2)}
-                  {Array.from({ length: maxLength }, (_, i) => {
-                    const chord = tab.chords[i] || ''
-                    const width = positionWidths[i] || 1
-                    const isCurrentPos = i === currentPosition
-                    const displayChord = chord.padEnd(width)
-                    
-                    return (
-                      <span key={i} className={`${isCurrentPos ? 'bg-blue-600 text-white' : ''}`}>
-                        {displayChord}
-                      </span>
-                    )
-                  })}
+                <div className="text-gray-200 mb-1">
+                  <span className="w-6 inline-block"></span>
+                  {chordLine}
                 </div>
-                
-                {/* Tab lines */}
-                {tab.lines.map((line, stringIndex) => (
-                  <div key={stringIndex} className="text-green-400 whitespace-pre">
-                    {line.string}|
-                    {Array.from({ length: maxLength }, (_, i) => {
-                      const note = line.notes[i] || '-'
-                      const width = positionWidths[i] || 1
-                      const isCurrentPos = i === currentPosition
-                      
-                      // Pad the note to match the required width for this position
-                      const paddedNote = note.padEnd(width)
-                      
-                      // Color code based on technique
-                      let noteClass = 'text-green-400'
-                      if (note.includes('/') || note.includes('\\')) noteClass = 'text-blue-400' // slides
-                      if (note.includes('h') || note.includes('p')) noteClass = 'text-yellow-400' // hammer/pull
-                      if (note.includes('^') || note.includes('~')) noteClass = 'text-red-400' // bends/vibrato
-                      if (note.includes('<') || note === 'x') noteClass = 'text-purple-400' // harmonics/mutes
-                      
-                      return (
-                        <span 
-                          key={i} 
-                          className={`${isCurrentPos ? 'bg-blue-600 text-white' : noteClass}`}
-                          onClick={() => removeNote(stringIndex, i)}
-                          style={{ cursor: 'pointer' }}
-                          title="Click to remove note"
-                        >
-                          {paddedNote}
-                        </span>
-                      )
-                    })}
-                    |
-                  </div>
-                ))}
+
+                {/* String lines */}
+                {tab.lines.map((line, stringIndex) => {
+                  const noteLine = []
+                  for (let i = 0; i < tabLength; i++) {
+                    const note = line.notes[i] || '-'
+                    const width = widths[i]
+                    const isCurrentPos = i === currentPosition
+
+                    let displayNote = note.toString()
+                    if (displayNote.length < width + 2) {
+                      displayNote = displayNote.padEnd(width + 2, '-')
+                    }
+
+                    const noteClass = note !== '-' ? 'text-gray-100' : 'text-gray-500'
+
+                    noteLine.push(
+                      <button
+                        key={i}
+                        type="button"
+                        className={`${isCurrentPos ? 'bg-gray-700 text-white' : noteClass}`}
+                        onClick={() => removeNote(stringIndex, i)}
+                        title="Click to remove note"
+                      >
+                        {displayNote}
+                      </button>
+                    )
+                  }
+
+                  return (
+                    <div key={line.string} className="text-gray-200 mb-1">
+                      <span className="w-6 inline-block font-semibold">{line.string}|</span>
+                      {noteLine}
+                      <span className="font-semibold">|</span>
+                    </div>
+                  )
+                })}
               </>
             )
           })()}
         </div>
-        
-        <div className="text-xs text-gray-500 mt-2">
-          Click on notes in the tab to remove them • Current position highlighted in blue<br/>
-          <span className="text-blue-400">Slides</span> • 
-          <span className="text-yellow-400 ml-2">Hammer-ons/Pull-offs</span> • 
-          <span className="text-red-400 ml-2">Bends/Vibrato</span> • 
-          <span className="text-purple-400 ml-2">Harmonics/Mutes</span> • 
-          <span className="text-green-400 ml-2">Normal</span>
+
+        {/* Legend */}
+        <div className="mt-4 pt-3 border-t border-gray-800">
+          <div className="text-xs text-gray-400 mb-2 font-medium">Techniques</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            {techniques
+              .filter(t => t.value !== 'normal')
+              .map(technique => (
+                <div key={technique.value} className="text-gray-300">
+                  <span className="font-mono font-semibold text-gray-100">
+                    {technique.symbol}
+                  </span>{' '}
+                  {technique.label}
+                </div>
+              ))}
+          </div>
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="mt-4 text-sm text-gray-400 space-y-1">
-        <p>• <strong>Select technique</strong> first, then click frets to add notes</p>
-        <p>• <strong>Slides/Hammer-ons/Pull-offs:</strong> Click starting fret, then click target fret on same string</p>
-        <p>• <strong>Positioning:</strong> Techniques stay aligned - target notes appear at next position</p>
-        <p>• <strong>Chord names:</strong> Type and press Enter to add above tab</p>
-        <p>• <strong>Click notes</strong> in the tab display to remove them</p>
-        <p>• <strong>Multiple notes</strong> at same position for chords</p>
-      </div>
+      {/* Embedded Save Hint */}
+      {embedded && (
+        <div className="mt-4 text-xs text-gray-500 text-center">
+          Changes are saved automatically
+        </div>
+      )}
     </div>
   )
 }
