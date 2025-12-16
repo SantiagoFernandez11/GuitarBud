@@ -36,7 +36,7 @@ export default function Login() {
         <div className="text-center">
           <Music className="mx-auto h-16 w-16 text-red-500 animate-pulse" />
           <h2 className="mt-6 text-4xl font-black text-gray-100">
-            Sign In to Shred
+            Sign In to Learn
           </h2>
           <p className="mt-2 text-lg text-gray-400 font-medium">
             Access your song arsenal

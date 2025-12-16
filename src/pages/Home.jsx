@@ -70,7 +70,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-bold text-red-400 mb-4">Shred Tracker</h3>
               <p className="text-gray-300">
-                Track your journey from "Want to Shred" through "Practicing" to "MASTERED!"
+                Track your journey from "Want to Learn" through "Practicing" to "MASTERED!"
               </p>
             </div>
 
@@ -113,7 +113,7 @@ export default function Home() {
             <span className="text-2xl font-black metal-logo">Guitar Bud</span>
           </div>
           <p className="text-gray-400 font-medium">
-            © 2024 Guitar Bud. Your faithful guitar companion. Keep shredding! 
+            © 2024 Guitar Bud. Your faithful guitar companion. Keep learning! 
           </p>
         </div>
       </footer>

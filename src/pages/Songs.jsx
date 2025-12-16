@@ -86,9 +86,9 @@ export default function Songs() {
       case 'learned':
         return '🎯 MASTERED'
       case 'practicing':
-        return '🔥 SHREDDING'
+        return 'LEARNING'
       case 'want_to_learn':
-        return '⭐ WANT TO SHRED'
+        return 'WANT TO LEARN'
       default:
         return status
     }
@@ -149,8 +149,8 @@ export default function Songs() {
           className="input-field sm:w-48"
         >
           <option value="all">All Status</option>
-          <option value="want_to_learn">Want to Shred</option>
-          <option value="practicing">Shredding</option>
+          <option value="want_to_learn">Want to Learn</option>
+          <option value="practicing">Learn</option>
           <option value="learned">Mastered</option>
         </select>
       </div>
